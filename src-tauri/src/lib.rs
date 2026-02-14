@@ -353,7 +353,16 @@ fn position_popover_under_tray<R: Runtime>(window: &tauri::WebviewWindow<R>, tra
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            // Only handle popover window - close when it loses focus
+            if window.label() == POPOVER_WINDOW_LABEL {
+                if let tauri::WindowEvent::Focused(false) = event {
+                    window.hide().ok();
+                }
+            }
+        })
         .setup(|app| {
             // Setup tray icon
             setup_tray(app.handle())?;

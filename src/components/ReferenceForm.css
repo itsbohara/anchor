@@ -96,6 +96,49 @@
     color: #6b7280;
 }
 
+/* Path Input with Browse Button */
+.path-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.path-input-wrapper input {
+    flex: 1;
+    min-width: 0;
+}
+
+.browse-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 16px;
+    background: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.browse-btn:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.browse-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.browse-icon {
+    font-size: 14px;
+}
+
 /* Form Row */
 .form-row {
     display: grid;

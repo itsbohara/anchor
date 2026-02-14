@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 import type { Reference } from "../types/references";
 import "./ReferenceForm.css";
 
@@ -144,6 +145,37 @@ export function ReferenceForm({
         [validationErrors],
     );
 
+    const handleBrowse = useCallback(
+        async (e: React.MouseEvent<HTMLButtonElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            try {
+                const selected = await open({
+                    directory: formData.type === "folder",
+                    multiple: false,
+                });
+
+                if (selected && typeof selected === "string") {
+                    setFormData((prev) => ({
+                        ...prev,
+                        absolutePath: selected,
+                    }));
+                    // Clear validation error if any
+                    if (validationErrors.absolutePath) {
+                        setValidationErrors((prev) => ({
+                            ...prev,
+                            absolutePath: "",
+                        }));
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to open file dialog:", err);
+            }
+        },
+        [formData.type, validationErrors.absolutePath],
+    );
+
     return (
         <form onSubmit={handleSubmit} className="reference-form">
             {error && (
@@ -177,15 +209,28 @@ export function ReferenceForm({
                 <label htmlFor="absolutePath">
                     Absolute Path <span className="required">*</span>
                 </label>
-                <input
-                    id="absolutePath"
-                    type="text"
-                    value={formData.absolutePath}
-                    onChange={handleChange("absolutePath")}
-                    placeholder="/Users/you/projects/my-project"
-                    disabled={isSubmitting}
-                    className={validationErrors.absolutePath ? "error" : ""}
-                />
+                <div className="path-input-wrapper">
+                    <input
+                        id="absolutePath"
+                        type="text"
+                        value={formData.absolutePath}
+                        onChange={handleChange("absolutePath")}
+                        placeholder="/Users/you/projects/my-project"
+                        disabled={isSubmitting}
+                        className={validationErrors.absolutePath ? "error" : ""}
+                    />
+                    <button
+                        type="button"
+                        className="browse-btn"
+                        onClick={handleBrowse}
+                        onMouseDown={(e) => e.preventDefault()}
+                        disabled={isSubmitting}
+                        title={`Browse for ${formData.type}`}
+                    >
+                        <span className="browse-icon">📁</span>
+                        Browse
+                    </button>
+                </div>
                 {validationErrors.absolutePath && (
                     <span className="field-error">
                         {validationErrors.absolutePath}

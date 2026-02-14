@@ -77,25 +77,26 @@
 }
 
 /* Reference row */
-.reference-row {
+.popover-container .reference-row {
   padding: 8px 12px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 4px;
   position: relative;
+  color: #e0e0e0;
 }
 
-.reference-row:hover,
-.reference-row.selected {
+.popover-container .reference-row:hover,
+.popover-container .reference-row.selected {
   background: #2a2a2a;
 }
 
-.reference-row.selected {
+.popover-container .reference-row.selected {
   background: #0a84ff33;
 }
 
-.reference-name {
+.popover-container .reference-name {
   font-weight: 500;
   color: #e0e0e0;
   white-space: nowrap;
@@ -103,14 +104,14 @@
   text-overflow: ellipsis;
 }
 
-.reference-meta {
+.popover-container .reference-meta {
   display: flex;
   gap: 6px;
   align-items: center;
 }
 
 /* Type badge */
-.type-badge {
+.popover-container .type-badge {
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 3px;
@@ -118,18 +119,18 @@
   font-weight: 600;
 }
 
-.type-badge.folder {
+.popover-container .type-badge.folder {
   background: #4a4a4a;
   color: #d0d0d0;
 }
 
-.type-badge.file {
+.popover-container .type-badge.file {
   background: #3a4a5a;
   color: #a8c8f8;
 }
 
 /* Tag badge */
-.tag-badge {
+.popover-container .tag-badge {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 3px;
