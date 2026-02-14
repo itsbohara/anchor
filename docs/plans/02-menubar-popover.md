@@ -1,5 +1,7 @@
 # Plan 02: Menu Bar Popover
 
+> **Status: ✅ COMPLETE**
+
 > **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
 **Goal:** Clicking the tray icon opens a popover (small window) with: search bar (focus on open), pinned section, references grouped by status (scrollable), quick actions per reference (Finder, Terminal, VSCode), and footer "Open Anchor". Layout and behavior follow [../menubar.md](../menubar.md).

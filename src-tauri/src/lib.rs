@@ -1,14 +1,227 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+mod models;
+mod storage;
+
+use std::process::Command;
+
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
+};
+
+use models::Reference;
+
+// Window labels
+const POPOVER_WINDOW_LABEL: &str = "popover";
+const DASHBOARD_WINDOW_LABEL: &str = "dashboard";
+
+// Window sizes
+const POPOVER_WIDTH: f64 = 320.0;
+const POPOVER_HEIGHT: f64 = 400.0;
+
+/// Get all references from storage
 #[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
+async fn get_references(app_handle: AppHandle) -> Result<Vec<Reference>, String> {
+    storage::read_references(&app_handle).map_err(|e| e.to_string())
+}
+
+/// Open a path in Finder
+#[tauri::command]
+async fn open_in_finder(path: String) -> Result<(), String> {
+    Command::new("open")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Open a path in Terminal
+#[tauri::command]
+async fn open_in_terminal(path: String) -> Result<(), String> {
+    Command::new("open")
+        .arg("-a")
+        .arg("Terminal")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Open a path in VSCode
+#[tauri::command]
+async fn open_in_vscode(path: String) -> Result<(), String> {
+    Command::new("code")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| format!("Failed to open VSCode: {}", e))?;
+    Ok(())
+}
+
+/// Reveal a path in Finder (select it)
+#[tauri::command]
+async fn reveal_in_finder(path: String) -> Result<(), String> {
+    Command::new("open")
+        .arg("-R")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Show or create the dashboard window
+#[tauri::command]
+async fn show_dashboard(app_handle: AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window(DASHBOARD_WINDOW_LABEL) {
+        // Dashboard exists, show and focus it
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+    } else {
+        // Create new dashboard window
+        let window = WebviewWindowBuilder::new(
+            &app_handle,
+            DASHBOARD_WINDOW_LABEL,
+            WebviewUrl::App("/dashboard".into()),
+        )
+        .title("Anchor - Dashboard")
+        .inner_size(1000.0, 700.0)
+        .min_inner_size(800.0, 500.0)
+        .center()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+        // Set window to close to hide (not destroy) - we'll handle this in event loop
+        // For now, just let it close normally
+        window.show().map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+/// Hide the popover window
+#[tauri::command]
+async fn hide_popover(app_handle: AppHandle) -> Result<(), String> {
+    if let Some(window) = app_handle.get_webview_window(POPOVER_WINDOW_LABEL) {
+        window.hide().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+/// Setup the system tray icon and menu
+fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
+    let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&quit_item])?;
+
+    let _tray = TrayIconBuilder::new()
+        .icon(app.default_window_icon().unwrap().clone())
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(|tray, event| match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } => {
+                let app_handle = tray.app_handle();
+                toggle_popover(app_handle);
+            }
+            _ => {}
+        })
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "quit" => {
+                app.exit(0);
+            }
+            _ => {}
+        })
+        .build(app)?;
+
+    Ok(())
+}
+
+/// Toggle the popover window visibility
+fn toggle_popover<R: Runtime>(app_handle: &AppHandle<R>) {
+    let popover = app_handle.get_webview_window(POPOVER_WINDOW_LABEL);
+
+    if let Some(window) = popover {
+        // Window exists
+        if window.is_visible().unwrap_or(false) {
+            window.hide().ok();
+        } else {
+            position_popover_under_tray(&window);
+            window.show().ok();
+            window.set_focus().ok();
+        }
+    } else {
+        // Create new popover window
+        let window = WebviewWindowBuilder::new(
+            app_handle,
+            POPOVER_WINDOW_LABEL,
+            WebviewUrl::App("/".into()),
+        )
+        .title("")
+        .inner_size(POPOVER_WIDTH, POPOVER_HEIGHT)
+        .decorations(false)
+        .skip_taskbar(true)
+        .always_on_top(true)
+        .resizable(false)
+        .visible(false)
+        .build()
+        .ok();
+
+        if let Some(w) = window {
+            position_popover_under_tray(&w);
+            w.show().ok();
+            w.set_focus().ok();
+        }
+    }
+}
+
+/// Position the popover window under the system tray
+fn position_popover_under_tray<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+    // Get screen dimensions
+    if let Ok(monitors) = window.available_monitors() {
+        if let Some(primary) = monitors.first() {
+            let screen_size = primary.size();
+            let screen_pos = primary.position();
+
+            // Position near the top-right of the primary screen (typical tray area)
+            // This is a heuristic - macOS tray icons are typically in the top-right
+            let x = screen_pos.x + screen_size.width as i32 - POPOVER_WIDTH as i32 - 20;
+            let y = 30; // Slight offset from top
+
+            window
+                .set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                    x: x as f64,
+                    y: y as f64,
+                }))
+                .ok();
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .setup(|app| {
+            // Setup tray icon
+            setup_tray(app.handle())?;
+
+            // Don't show the main window on startup - only show tray
+            if let Some(window) = app.get_webview_window("main") {
+                window.hide().ok();
+            }
+
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![
+            get_references,
+            open_in_finder,
+            open_in_terminal,
+            open_in_vscode,
+            reveal_in_finder,
+            show_dashboard,
+            hide_popover,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

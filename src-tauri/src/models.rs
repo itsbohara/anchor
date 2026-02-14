@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Represents a reference (folder or file) tracked by Anchor.
+/// Mirrors the frontend Reference type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Reference {
     /// Unique identifier for the reference.
@@ -15,8 +16,7 @@ pub struct Reference {
     pub absolute_path: String,
 
     /// Type: "folder" or "file".
-    #[serde(rename = "type")]
-    pub type_: String,
+    pub reference_type: String,
 
     /// Status: "active", "paused", "completed", "idea", or "archived".
     pub status: String,
@@ -42,21 +42,13 @@ pub struct Reference {
 /// Root structure of the data.json file.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StorageFile {
-    /// List of all references.
     pub references: Vec<Reference>,
-}
-
-impl StorageFile {
-    /// Creates a new empty storage file.
-    pub fn new() -> Self {
-        Self {
-            references: Vec::new(),
-        }
-    }
 }
 
 impl Default for StorageFile {
     fn default() -> Self {
-        Self::new()
+        Self {
+            references: Vec::new(),
+        }
     }
 }

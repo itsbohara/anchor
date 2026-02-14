@@ -1,51 +1,49 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useState } from "react";
+import { MenubarPopover } from "./components/MenubarPopover";
+import { Dashboard } from "./components/Dashboard";
 import "./App.css";
 
+/**
+ * App determines which view to render based on the window type.
+ *
+ * - Popover window ("/"): Shows the MenubarPopover (small search + list)
+ * - Dashboard window ("/dashboard"): Shows the full Dashboard (table view)
+ *
+ * Since Tauri windows use the same frontend bundle, we use the window label
+ * and URL path to determine the appropriate view.
+ */
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+    const [view, setView] = useState<"popover" | "dashboard" | "loading">(
+        "loading",
+    );
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+    useEffect(() => {
+        // Detect window type based on URL path
+        const path = window.location.pathname;
 
-  return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+        if (path === "/dashboard") {
+            setView("dashboard");
+        } else {
+            // Default to popover for "/" and any other path
+            setView("popover");
+        }
+    }, []);
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+    // Loading state while we determine the view
+    if (view === "loading") {
+        return (
+            <div className="app-loading">
+                <div className="loading-spinner"></div>
+            </div>
+        );
+    }
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+    // Render the appropriate view
+    return (
+        <div className={view === "popover" ? "popover-root" : "dashboard-root"}>
+            {view === "popover" ? <MenubarPopover /> : <Dashboard />}
+        </div>
+    );
 }
 
 export default App;
