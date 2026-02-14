@@ -17,6 +17,7 @@ interface ReferenceState {
         id: string,
         reference: Omit<Reference, "id" | "createdAt" | "lastOpenedAt">,
     ) => Promise<Reference>;
+    deleteReference: (id: string) => Promise<void>;
 }
 
 export const useReferenceStore = create<ReferenceState>((set, get) => ({
@@ -119,6 +120,28 @@ export const useReferenceStore = create<ReferenceState>((set, get) => ({
                     err instanceof Error
                         ? err.message
                         : "Failed to update reference",
+                isLoading: false,
+            });
+            throw err;
+        }
+    },
+
+    deleteReference: async (id) => {
+        set({ isLoading: true, error: null });
+        try {
+            await invoke<void>("delete_reference", { id });
+
+            // Remove from local state
+            set({
+                references: get().references.filter((ref) => ref.id !== id),
+                isLoading: false,
+            });
+        } catch (err) {
+            set({
+                error:
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to delete reference",
                 isLoading: false,
             });
             throw err;
