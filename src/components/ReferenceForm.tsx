@@ -197,6 +197,7 @@ export function ReferenceForm({
                     placeholder="e.g., My Project"
                     disabled={isSubmitting}
                     className={validationErrors.referenceName ? "error" : ""}
+                    autoFocus
                 />
                 {validationErrors.referenceName && (
                     <span className="field-error">

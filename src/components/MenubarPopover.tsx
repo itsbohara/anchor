@@ -34,6 +34,7 @@ export function MenubarPopover() {
     const { references, isLoading, loadReferences } = useReferenceStore();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
+    const [activeRowId, setActiveRowId] = useState<string | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const openAnchorButtonRef = useRef<HTMLButtonElement>(null);
@@ -227,6 +228,8 @@ export function MenubarPopover() {
                                         "id" in item && item.id === ref.id,
                                 ) === selectedIndex
                             }
+                            activeRowId={activeRowId}
+                            onHoverChange={setActiveRowId}
                         />
                     ))}
                 </div>
@@ -254,6 +257,8 @@ export function MenubarPopover() {
                                                 item.id === ref.id,
                                         ) === selectedIndex
                                     }
+                                    activeRowId={activeRowId}
+                                    onHoverChange={setActiveRowId}
                                 />
                             ))}
                         </div>
@@ -283,12 +288,43 @@ export function MenubarPopover() {
 interface ReferenceRowProps {
     reference: Reference;
     isSelected: boolean;
+    activeRowId: string | null;
+    onHoverChange: (rowId: string | null) => void;
 }
 
-function ReferenceRow({ reference, isSelected }: ReferenceRowProps) {
-    const [isHovered, setIsHovered] = useState(false);
+function ReferenceRow({ reference, isSelected, activeRowId, onHoverChange }: ReferenceRowProps) {
+    const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const isThisRowActive = activeRowId === reference.id;
 
-    const handleClick = () => {
+    // Show Open button if: row is hovered, row is selected with no other hover, OR dropdown is open
+    const isOpenVisible = isThisRowActive || (isSelected && activeRowId === null) || dropdownOpen;
+
+    const handleMouseEnter = () => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+        onHoverChange(reference.id);
+    };
+
+    const handleMouseLeave = () => {
+        // Delay clearing the hover so user can move to dropdown
+        hoverTimeoutRef.current = setTimeout(() => {
+            onHoverChange(null);
+        }, 200);
+    };
+
+    const handleDropdownMouseEnter = () => {
+        // Keep this row active when hovering over the dropdown
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+            hoverTimeoutRef.current = null;
+        }
+        onHoverChange(reference.id);
+    };
+
+    const handleRowClick = () => {
         invoke("open_in_finder", { path: reference.absolutePath });
     };
 
@@ -308,12 +344,17 @@ function ReferenceRow({ reference, isSelected }: ReferenceRowProps) {
         invoke("copy_path_to_clipboard", { path: reference.absolutePath });
     };
 
+    // Prevent row click when clicking the dropdown area
+    const handleDropdownContainerClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+    };
+
     return (
         <div
             className={`reference-row ${isSelected ? "selected" : ""}`}
-            onClick={handleClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onClick={handleRowClick}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
         >
             <div className="reference-name">{reference.referenceName}</div>
             <div className="reference-meta">
@@ -326,35 +367,37 @@ function ReferenceRow({ reference, isSelected }: ReferenceRowProps) {
                     </span>
                 ))}
             </div>
-            {(isSelected || isHovered) && (
-                <div className="open-dropdown-container">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="xs">
-                                Open ▼
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={handleOpenInFinder}>
-                                <span className="mr-2">📁</span>
-                                Finder
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleOpenInVSCode}>
-                                <span className="mr-2">📝</span>
-                                VS Code:
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleOpenInTerminal}>
-                                <span className="mr-2">💻</span>
-                                Terminal
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={handleCopyPath}>
-                                <span className="mr-2">📋</span>
-                                Copy path
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                </div>
-            )}
+            <div
+                className={`open-dropdown-container ${isOpenVisible ? "visible" : ""}`}
+                onMouseEnter={handleDropdownMouseEnter}
+                onClick={handleDropdownContainerClick}
+            >
+                <DropdownMenu modal={false} open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="xs" onClick={(e) => e.stopPropagation()}>
+                            Open ▼
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handleOpenInFinder}>
+                            <span className="mr-2">📁</span>
+                            Finder
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleOpenInVSCode}>
+                            <span className="mr-2">📝</span>
+                            VS Code:
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleOpenInTerminal}>
+                            <span className="mr-2">💻</span>
+                            Terminal
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleCopyPath}>
+                            <span className="mr-2">📋</span>
+                            Copy path
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
         </div>
     );
 }

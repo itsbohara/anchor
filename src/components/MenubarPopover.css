@@ -155,16 +155,17 @@ body {
 /* Open dropdown container */
 .open-dropdown-container {
   position: absolute;
-  right: 8px;
+  right: 0;
   top: 50%;
   transform: translateY(-50%);
   z-index: 9999;
+  padding: 4px 8px;
   opacity: 0;
   visibility: hidden;
+  transition: opacity 0.1s ease, visibility 0.1s ease;
 }
 
-.reference-row:hover .open-dropdown-container,
-.reference-row.selected .open-dropdown-container {
+.open-dropdown-container.visible {
   opacity: 1;
   visibility: visible;
 }
