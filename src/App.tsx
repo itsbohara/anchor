@@ -1,34 +1,51 @@
-import { useEffect, useState } from "react";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { MenubarPopover } from "./components/MenubarPopover";
+import { useState } from "react";
+import reactLogo from "./assets/react.svg";
+import { invoke } from "@tauri-apps/api/core";
+import "./App.css";
 
 function App() {
-    const [windowLabel, setWindowLabel] = useState<string | null>(null);
+  const [greetMsg, setGreetMsg] = useState("");
+  const [name, setName] = useState("");
 
-    useEffect(() => {
-        const window = getCurrentWebviewWindow();
-        setWindowLabel(window.label);
-    }, []);
+  async function greet() {
+    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
+    setGreetMsg(await invoke("greet", { name }));
+  }
 
-    // Show popover for the popover window, placeholder for main window
-    if (windowLabel === "popover") {
-        return <MenubarPopover />;
-    }
+  return (
+    <main className="container">
+      <h1>Welcome to Tauri + React</h1>
 
-    // Main dashboard window - placeholder for now (Plan 03 implements this)
-    return (
-        <div
-            style={{
-                padding: 20,
-                color: "#e0e0e0",
-                background: "#1e1e1e",
-                height: "100vh",
-            }}
-        >
-            <h1>Anchor Dashboard</h1>
-            <p>Dashboard implementation coming in Plan 03.</p>
-        </div>
-    );
+      <div className="row">
+        <a href="https://vite.dev" target="_blank">
+          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
+        </a>
+        <a href="https://tauri.app" target="_blank">
+          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
+        </a>
+        <a href="https://react.dev" target="_blank">
+          <img src={reactLogo} className="logo react" alt="React logo" />
+        </a>
+      </div>
+      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+
+      <form
+        className="row"
+        onSubmit={(e) => {
+          e.preventDefault();
+          greet();
+        }}
+      >
+        <input
+          id="greet-input"
+          onChange={(e) => setName(e.currentTarget.value)}
+          placeholder="Enter a name..."
+        />
+        <button type="submit">Greet</button>
+      </form>
+      <p>{greetMsg}</p>
+    </main>
+  );
 }
 
 export default App;
