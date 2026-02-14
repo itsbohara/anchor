@@ -288,6 +288,7 @@ fn toggle_popover<R: Runtime>(app_handle: &AppHandle<R>, tray_rect: Option<tauri
         .always_on_top(true)
         .resizable(false)
         .visible(false)
+        
         .build()
         .ok();
 
