@@ -32,11 +32,19 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export function Dashboard() {
-    const { references, isLoading, loadReferences, addReference } =
-        useReferenceStore();
+    const {
+        references,
+        isLoading,
+        loadReferences,
+        addReference,
+        updateReference,
+    } = useReferenceStore();
     const [sortField, setSortField] = useState<keyof Reference>("createdAt");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [modalMode, setModalMode] = useState<"add" | "edit">("add");
+    const [selectedReference, setSelectedReference] =
+        useState<Reference | null>(null);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -76,6 +84,16 @@ export function Dashboard() {
 
     // Handle opening add modal
     const handleOpenAddModal = useCallback(() => {
+        setModalMode("add");
+        setSelectedReference(null);
+        setSubmitError(null);
+        setIsModalOpen(true);
+    }, []);
+
+    // Handle opening edit modal
+    const handleOpenEditModal = useCallback((ref: Reference) => {
+        setModalMode("edit");
+        setSelectedReference(ref);
         setSubmitError(null);
         setIsModalOpen(true);
     }, []);
@@ -84,11 +102,12 @@ export function Dashboard() {
     const handleCloseModal = useCallback(() => {
         if (!isSubmitting) {
             setIsModalOpen(false);
+            setSelectedReference(null);
             setSubmitError(null);
         }
     }, [isSubmitting]);
 
-    // Handle form submit
+    // Handle form submit for add
     const handleAddReference = useCallback(
         async (
             reference: Omit<Reference, "id" | "createdAt" | "lastOpenedAt">,
@@ -110,6 +129,33 @@ export function Dashboard() {
             }
         },
         [addReference],
+    );
+
+    // Handle form submit for edit
+    const handleUpdateReference = useCallback(
+        async (
+            reference: Omit<Reference, "id" | "createdAt" | "lastOpenedAt">,
+        ) => {
+            if (!selectedReference) return;
+
+            setIsSubmitting(true);
+            setSubmitError(null);
+
+            try {
+                await updateReference(selectedReference.id, reference);
+                setIsModalOpen(false);
+                setSelectedReference(null);
+            } catch (err) {
+                setSubmitError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to update reference",
+                );
+            } finally {
+                setIsSubmitting(false);
+            }
+        },
+        [updateReference, selectedReference],
     );
 
     // Sort and filter references
@@ -370,6 +416,18 @@ export function Dashboard() {
                                                 <div className="action-buttons">
                                                     <button
                                                         className="action-btn"
+                                                        title="Edit Reference"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenEditModal(
+                                                                ref,
+                                                            );
+                                                        }}
+                                                    >
+                                                        ✎
+                                                    </button>
+                                                    <button
+                                                        className="action-btn"
                                                         title="Open in Terminal"
                                                         onClick={(e) =>
                                                             handleOpenInTerminal(
@@ -415,7 +473,7 @@ export function Dashboard() {
                 </div>
             )}
 
-            {/* Add Reference Modal */}
+            {/* Add/Edit Reference Modal */}
             {isModalOpen && (
                 <div className="modal-overlay" onClick={handleCloseModal}>
                     <div
@@ -423,7 +481,11 @@ export function Dashboard() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="modal-header">
-                            <h2>Add Reference</h2>
+                            <h2>
+                                {modalMode === "add"
+                                    ? "Add Reference"
+                                    : "Edit Reference"}
+                            </h2>
                             <button
                                 className="modal-close"
                                 onClick={handleCloseModal}
@@ -434,8 +496,13 @@ export function Dashboard() {
                         </div>
                         <div className="modal-body">
                             <ReferenceForm
-                                mode="add"
-                                onSave={handleAddReference}
+                                mode={modalMode}
+                                initialData={selectedReference || undefined}
+                                onSave={
+                                    modalMode === "add"
+                                        ? handleAddReference
+                                        : handleUpdateReference
+                                }
                                 onCancel={handleCloseModal}
                                 isSubmitting={isSubmitting}
                                 error={submitError}
