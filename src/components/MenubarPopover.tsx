@@ -1,9 +1,16 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useReferenceStore } from "../stores/referenceStore";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import type { Reference } from "../types/references";
 import "./MenubarPopover.css";
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Status order for grouping
 const STATUS_ORDER = [
@@ -260,13 +267,14 @@ export function MenubarPopover() {
 
             {/* Footer */}
             <div className="footer">
-                <button
+                <Button
                     ref={openAnchorButtonRef}
-                    className="open-anchor-btn"
+                    variant="outline"
+                    className="w-full"
                     onClick={handleOpenAnchor}
                 >
                     Open Anchor
-                </button>
+                </Button>
             </div>
         </div>
     );
@@ -278,29 +286,34 @@ interface ReferenceRowProps {
 }
 
 function ReferenceRow({ reference, isSelected }: ReferenceRowProps) {
+    const [isHovered, setIsHovered] = useState(false);
+
     const handleClick = () => {
         invoke("open_in_finder", { path: reference.absolutePath });
     };
 
-    const handleTerminalClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        invoke("open_in_terminal", { path: reference.absolutePath });
+    const handleOpenInFinder = () => {
+        invoke("open_in_finder", { path: reference.absolutePath });
     };
 
-    const handleVSCodeClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleOpenInVSCode = () => {
         invoke("open_in_vscode", { path: reference.absolutePath });
     };
 
-    const handleRevealClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        invoke("reveal_in_finder", { path: reference.absolutePath });
+    const handleOpenInTerminal = () => {
+        invoke("open_in_terminal", { path: reference.absolutePath });
+    };
+
+    const handleCopyPath = () => {
+        invoke("copy_path_to_clipboard", { path: reference.absolutePath });
     };
 
     return (
         <div
             className={`reference-row ${isSelected ? "selected" : ""}`}
             onClick={handleClick}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
         >
             <div className="reference-name">{reference.referenceName}</div>
             <div className="reference-meta">
@@ -313,23 +326,33 @@ function ReferenceRow({ reference, isSelected }: ReferenceRowProps) {
                     </span>
                 ))}
             </div>
-            {isSelected && (
-                <div className="quick-actions">
-                    <button
-                        title="Open in Terminal"
-                        onClick={handleTerminalClick}
-                    >
-                        ⌘
-                    </button>
-                    <button title="Open in VS Code" onClick={handleVSCodeClick}>
-                        ⌥
-                    </button>
-                    <button
-                        title="Reveal in Finder"
-                        onClick={handleRevealClick}
-                    >
-                        R
-                    </button>
+            {(isSelected || isHovered) && (
+                <div className="open-dropdown-container">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="xs">
+                                Open ▼
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={handleOpenInFinder}>
+                                <span className="mr-2">📁</span>
+                                Finder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleOpenInVSCode}>
+                                <span className="mr-2">📝</span>
+                                VS Code:
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleOpenInTerminal}>
+                                <span className="mr-2">💻</span>
+                                Terminal
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={handleCopyPath}>
+                                <span className="mr-2">📋</span>
+                                Copy path
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             )}
         </div>

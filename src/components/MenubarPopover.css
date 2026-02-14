@@ -67,21 +67,25 @@ body {
 }
 
 /* Section label */
-.section-label {
+.popover-container .section-label {
   padding: 4px 12px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
   color: #b0b0b0;
   letter-spacing: 0.5px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Empty state */
-.empty-state {
+.popover-container .empty-state {
   padding: 24px 12px;
   text-align: center;
   color: #888;
   font-style: italic;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Reference row */
@@ -93,6 +97,8 @@ body {
   gap: 4px;
   position: relative;
   color: #e0e0e0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .popover-container .reference-row:hover,
@@ -146,30 +152,21 @@ body {
   color: #c0c0c0;
 }
 
-/* Quick actions */
-.quick-actions {
+/* Open dropdown container */
+.open-dropdown-container {
   position: absolute;
   right: 8px;
   top: 50%;
   transform: translateY(-50%);
-  display: flex;
-  gap: 4px;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
 }
 
-.quick-actions button {
-  background: #3a3a3a;
-  border: none;
-  color: #888;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 11px;
-  font-family: inherit;
-}
-
-.quick-actions button:hover {
-  background: #4a4a4a;
-  color: #e0e0e0;
+.reference-row:hover .open-dropdown-container,
+.reference-row.selected .open-dropdown-container {
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Footer */
@@ -177,22 +174,6 @@ body {
   padding: 12px;
   border-top: 1px solid #333;
   flex-shrink: 0;
-}
-
-.open-anchor-btn {
-  width: 100%;
-  padding: 8px 12px;
-  background: #2a2a2a;
-  border: 1px solid #444;
-  border-radius: 6px;
-  color: #e0e0e0;
-  cursor: pointer;
-  font-size: 13px;
-  font-family: inherit;
-}
-
-.open-anchor-btn:hover {
-  background: #3a3a3a;
 }
 
 /* Scrollbar styling - auto-hide on macOS */
