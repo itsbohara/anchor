@@ -186,9 +186,14 @@
   background: #3a3a3a;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling - auto-hide on macOS */
 .grouped-list::-webkit-scrollbar {
-  width: 6px;
+  width: 0;
+  background: transparent;
+}
+
+.grouped-list:hover::-webkit-scrollbar {
+  width: 4px;
 }
 
 .grouped-list::-webkit-scrollbar-track {
@@ -196,10 +201,10 @@
 }
 
 .grouped-list::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 3px;
+  background: #555;
+  border-radius: 2px;
 }
 
 .grouped-list::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #666;
 }
