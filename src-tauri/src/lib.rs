@@ -10,6 +10,7 @@ use tauri::{
 };
 
 use models::Reference;
+use uuid::Uuid;
 
 // Window labels
 const POPOVER_WINDOW_LABEL: &str = "popover";
@@ -104,6 +105,46 @@ async fn hide_popover(app_handle: AppHandle) -> Result<(), String> {
         window.hide().map_err(|e| e.to_string())?;
     }
     Ok(())
+}
+
+/// Add a new reference to storage
+#[tauri::command]
+async fn add_reference(
+    app_handle: AppHandle,
+    mut reference: Reference,
+) -> Result<Reference, String> {
+    // Validate required fields
+    if reference.reference_name.trim().is_empty() {
+        return Err("Reference name is required".to_string());
+    }
+    if reference.absolute_path.trim().is_empty() {
+        return Err("Absolute path is required".to_string());
+    }
+    if reference.reference_type.is_empty() {
+        return Err("Type is required".to_string());
+    }
+    if reference.status.is_empty() {
+        return Err("Status is required".to_string());
+    }
+
+    // Generate UUID
+    reference.id = Uuid::new_v4().to_string();
+
+    // Set timestamps
+    let now = chrono::Utc::now().to_rfc3339();
+    reference.created_at = now.clone();
+    reference.last_opened_at = now;
+
+    // Read current references
+    let mut references = storage::read_references(&app_handle).map_err(|e| e.to_string())?;
+
+    // Add new reference
+    references.push(reference.clone());
+
+    // Write back to storage
+    storage::write_references(&app_handle, &references).map_err(|e| e.to_string())?;
+
+    Ok(reference)
 }
 
 /// Setup the system tray icon and menu
@@ -215,6 +256,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             get_references,
+            add_reference,
             open_in_finder,
             open_in_terminal,
             open_in_vscode,
