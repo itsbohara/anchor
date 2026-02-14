@@ -12,10 +12,22 @@
     "app": {
         "windows": [
             {
-                "title": "anchor",
-                "width": 800,
+                "label": "main",
+                "title": "Anchor Dashboard",
+                "width": 900,
                 "height": 600,
-                "visible": false
+                "visible": false,
+                "center": true
+            },
+            {
+                "label": "popover",
+                "title": "Anchor",
+                "width": 360,
+                "height": 480,
+                "visible": false,
+                "decorations": false,
+                "alwaysOnTop": true,
+                "skipTaskbar": true
             }
         ],
         "security": {

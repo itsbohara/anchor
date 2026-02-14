@@ -3,7 +3,19 @@ mod storage;
 
 use models::Reference;
 use storage::{read_references, write_references};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager, WindowEvent};
+
+/// Toggle the popover window visibility on tray click.
+fn toggle_popover(app: &AppHandle) {
+    if let Some(popover) = app.get_webview_window("popover") {
+        if popover.is_visible().unwrap_or(false) {
+            let _ = popover.hide();
+        } else {
+            let _ = popover.show();
+            let _ = popover.set_focus();
+        }
+    }
+}
 
 /// Gets all references from data.json.
 #[tauri::command]
@@ -63,9 +75,19 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+/// Shows the main dashboard window.
+#[tauri::command]
+fn show_dashboard(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let builder = tauri::Builder::default()
+    tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
@@ -74,20 +96,27 @@ pub fn run() {
             open_in_finder,
             open_in_terminal,
             open_in_vscode,
-            reveal_in_finder
-        ]);
-
-    #[cfg(target_os = "macos")]
-    let builder = builder.on_window_event(|window, event| match event {
-        tauri::WindowEvent::CloseRequested { api, .. } => {
-            // Prevent window close, hide it instead
-            window.hide().unwrap();
-            api.prevent_close();
-        }
-        _ => {}
-    });
-
-    builder
+            reveal_in_finder,
+            show_dashboard
+        ])
+        .setup(|app| {
+            // Set up tray icon click handler
+            let handle = app.handle().clone();
+            app.on_tray_icon_event(move |_app, event| {
+                if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                    toggle_popover(&handle);
+                }
+            });
+            Ok(())
+        })
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
+                // Prevent window close, hide it instead
+                let _ = window.hide();
+                api.prevent_close();
+            }
+            _ => {}
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
