@@ -242,10 +242,11 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::
             TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
+                rect,
                 ..
             } => {
                 let app_handle = tray.app_handle();
-                toggle_popover(app_handle);
+                toggle_popover(app_handle, Some(rect));
             }
             _ => {}
         })
@@ -261,7 +262,7 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::
 }
 
 /// Toggle the popover window visibility
-fn toggle_popover<R: Runtime>(app_handle: &AppHandle<R>) {
+fn toggle_popover<R: Runtime>(app_handle: &AppHandle<R>, tray_rect: Option<tauri::Rect>) {
     let popover = app_handle.get_webview_window(POPOVER_WINDOW_LABEL);
 
     if let Some(window) = popover {
@@ -269,7 +270,7 @@ fn toggle_popover<R: Runtime>(app_handle: &AppHandle<R>) {
         if window.is_visible().unwrap_or(false) {
             window.hide().ok();
         } else {
-            position_popover_under_tray(&window);
+            position_popover_under_tray(&window, tray_rect);
             window.show().ok();
             window.set_focus().ok();
         }
@@ -291,7 +292,7 @@ fn toggle_popover<R: Runtime>(app_handle: &AppHandle<R>) {
         .ok();
 
         if let Some(w) = window {
-            position_popover_under_tray(&w);
+            position_popover_under_tray(&w, tray_rect);
             w.show().ok();
             w.set_focus().ok();
         }
@@ -299,24 +300,52 @@ fn toggle_popover<R: Runtime>(app_handle: &AppHandle<R>) {
 }
 
 /// Position the popover window under the system tray
-fn position_popover_under_tray<R: Runtime>(window: &tauri::WebviewWindow<R>) {
-    // Get screen dimensions
-    if let Ok(monitors) = window.available_monitors() {
-        if let Some(primary) = monitors.first() {
-            let screen_size = primary.size();
-            let screen_pos = primary.position();
+fn position_popover_under_tray<R: Runtime>(window: &tauri::WebviewWindow<R>, tray_rect: Option<tauri::Rect>) {
+    // Get the tray icon position if available
+    if let Some(rect) = tray_rect {
+        // Extract position and size values from Physical or Logical variants
+        let (tray_x, tray_y) = match rect.position {
+            tauri::Position::Physical(pos) => (pos.x as f64, pos.y as f64),
+            tauri::Position::Logical(pos) => (pos.x, pos.y),
+        };
+        
+        let (tray_width, tray_height) = match rect.size {
+            tauri::Size::Physical(size) => (size.width as f64, size.height as f64),
+            tauri::Size::Logical(size) => (size.width, size.height),
+        };
+        
+        // Position the popover centered under the tray icon
+        let tray_center_x = tray_x + (tray_width / 2.0);
+        let tray_bottom_y = tray_y + tray_height;
+        
+        // Center the popover under the tray icon
+        let popover_x = tray_center_x - (POPOVER_WIDTH / 2.0);
+        let popover_y = tray_bottom_y + 8.0; // 8px gap from tray icon
+        
+        window
+            .set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                x: popover_x,
+                y: popover_y,
+            }))
+            .ok();
+    } else {
+        // Fallback to screen-based positioning
+        if let Ok(monitors) = window.available_monitors() {
+            if let Some(primary) = monitors.first() {
+                let screen_size = primary.size();
+                let screen_pos = primary.position();
 
-            // Position near the top-right of the primary screen (typical tray area)
-            // This is a heuristic - macOS tray icons are typically in the top-right
-            let x = screen_pos.x + screen_size.width as i32 - POPOVER_WIDTH as i32 - 20;
-            let y = 30; // Slight offset from top
+                // Position near the top-right of the primary screen (typical tray area)
+                let x = screen_pos.x + screen_size.width as i32 - POPOVER_WIDTH as i32 - 20;
+                let y = 30; // Slight offset from top
 
-            window
-                .set_position(tauri::Position::Logical(tauri::LogicalPosition {
-                    x: x as f64,
-                    y: y as f64,
-                }))
-                .ok();
+                window
+                    .set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                        x: x as f64,
+                        y: y as f64,
+                    }))
+                    .ok();
+            }
         }
     }
 }
