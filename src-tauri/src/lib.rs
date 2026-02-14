@@ -147,6 +147,51 @@ async fn add_reference(
     Ok(reference)
 }
 
+/// Update an existing reference in storage
+#[tauri::command]
+async fn update_reference(
+    app_handle: AppHandle,
+    id: String,
+    reference: Reference,
+) -> Result<Reference, String> {
+    // Validate required fields
+    if reference.reference_name.trim().is_empty() {
+        return Err("Reference name is required".to_string());
+    }
+    if reference.absolute_path.trim().is_empty() {
+        return Err("Absolute path is required".to_string());
+    }
+    if reference.reference_type.is_empty() {
+        return Err("Type is required".to_string());
+    }
+    if reference.status.is_empty() {
+        return Err("Status is required".to_string());
+    }
+
+    // Read current references
+    let mut references = storage::read_references(&app_handle).map_err(|e| e.to_string())?;
+
+    // Find the reference to update
+    let index = references
+        .iter()
+        .position(|r| r.id == id)
+        .ok_or_else(|| format!("Reference with id '{}' not found", id))?;
+
+    // Preserve the original id and created_at, update last_opened_at
+    let mut updated_reference = reference;
+    updated_reference.id = id;
+    updated_reference.created_at = references[index].created_at.clone();
+    updated_reference.last_opened_at = chrono::Utc::now().to_rfc3339();
+
+    // Replace the reference
+    references[index] = updated_reference.clone();
+
+    // Write back to storage
+    storage::write_references(&app_handle, &references).map_err(|e| e.to_string())?;
+
+    Ok(updated_reference)
+}
+
 /// Setup the system tray icon and menu
 fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -257,6 +302,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_references,
             add_reference,
+            update_reference,
             open_in_finder,
             open_in_terminal,
             open_in_vscode,
