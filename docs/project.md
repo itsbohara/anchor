@@ -1,9 +1,3 @@
-Love it. Let's formalize **Anchor** properly.
-
-Below is a complete PROJECT.md you can directly use in your repo.
-
----
-
 # **Anchor**
 
 **Anchor** is a lightweight macOS menu bar app that helps you organize, remember, and instantly access your local projects, folders, and files.
