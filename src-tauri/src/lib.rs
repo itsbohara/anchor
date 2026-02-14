@@ -7,7 +7,7 @@ use std::process::Command;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
+    AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
 
 use models::Reference;
@@ -151,6 +151,9 @@ async fn add_reference(
     // Write back to storage
     storage::write_references(&app_handle, &references).map_err(|e| e.to_string())?;
 
+    // Emit event to notify all windows of the change
+    app_handle.emit("references_changed", ()).map_err(|e| e.to_string())?;
+
     Ok(reference)
 }
 
@@ -196,6 +199,9 @@ async fn update_reference(
     // Write back to storage
     storage::write_references(&app_handle, &references).map_err(|e| e.to_string())?;
 
+    // Emit event to notify all windows of the change
+    app_handle.emit("references_changed", ()).map_err(|e| e.to_string())?;
+
     Ok(updated_reference)
 }
 
@@ -216,6 +222,9 @@ async fn delete_reference(app_handle: AppHandle, id: String) -> Result<(), Strin
 
     // Write back to storage
     storage::write_references(&app_handle, &references).map_err(|e| e.to_string())?;
+
+    // Emit event to notify all windows of the change
+    app_handle.emit("references_changed", ()).map_err(|e| e.to_string())?;
 
     Ok(())
 }

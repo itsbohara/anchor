@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useReferenceStore } from "../stores/referenceStore";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import type { Reference } from "../types/references";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ReferenceForm } from "./ReferenceForm";
@@ -54,7 +55,7 @@ export function Dashboard() {
         loadReferences();
     }, [loadReferences]);
 
-    // Reload on window focus
+    // Reload on window focus and when references change
     useEffect(() => {
         const appWindow = getCurrentWindow();
 
@@ -63,10 +64,22 @@ export function Dashboard() {
         };
 
         // Listen for focus events
-        const unlisten = appWindow.listen("tauri://focus", handleFocus);
+        const unlistenFocus = appWindow.listen("tauri://focus", handleFocus);
+
+        // Listen for references_changed events from backend
+        let unlistenEvent: (() => void) | undefined;
+        const setupEventListener = async () => {
+            unlistenEvent = await listen("references_changed", () => {
+                loadReferences();
+            });
+        };
+        setupEventListener();
 
         return () => {
-            unlisten.then((fn) => fn());
+            unlistenFocus.then((fn) => fn());
+            if (unlistenEvent) {
+                unlistenEvent();
+            }
         };
     }, [loadReferences]);
 

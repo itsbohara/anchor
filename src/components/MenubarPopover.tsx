@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useReferenceStore } from "../stores/referenceStore";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import type { Reference } from "../types/references";
 import "./MenubarPopover.css";
 
@@ -30,9 +31,34 @@ export function MenubarPopover() {
     const containerRef = useRef<HTMLDivElement>(null);
     const openAnchorButtonRef = useRef<HTMLButtonElement>(null);
 
-    // Load references on mount
+    // Load references on mount and when window becomes visible
     useEffect(() => {
         loadReferences();
+
+        // Listen for window visibility changes
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === "visible") {
+                loadReferences();
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+
+        // Listen for references_changed events from backend
+        let unlisten: (() => void) | undefined;
+        const setupEventListener = async () => {
+            unlisten = await listen("references_changed", () => {
+                loadReferences();
+            });
+        };
+        setupEventListener();
+
+        return () => {
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+            if (unlisten) {
+                unlisten();
+            }
+        };
     }, [loadReferences]);
 
     // Focus search input on mount

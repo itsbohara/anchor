@@ -139,6 +139,7 @@
     width: 100%;
     border-collapse: collapse;
     background: #ffffff;
+    table-layout: fixed;
 }
 
 .reference-table th {
