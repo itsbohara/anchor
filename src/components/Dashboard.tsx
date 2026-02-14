@@ -38,6 +38,7 @@ export function Dashboard() {
         loadReferences,
         addReference,
         updateReference,
+        deleteReference,
     } = useReferenceStore();
     const [sortField, setSortField] = useState<keyof Reference>("createdAt");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -222,6 +223,32 @@ export function Dashboard() {
         e.stopPropagation();
         invoke("reveal_in_finder", { path: ref.absolutePath });
     };
+
+    const handleDeleteReference = useCallback(
+        async (e: React.MouseEvent, ref: Reference) => {
+            e.stopPropagation();
+
+            // Show confirmation dialog
+            const confirmed = window.confirm(
+                `Delete "${ref.referenceName}"?\n\nThis action cannot be undone.`,
+            );
+
+            if (!confirmed) return;
+
+            try {
+                await deleteReference(ref.id);
+                // If the deleted reference was being edited, close the modal
+                if (selectedReference?.id === ref.id) {
+                    setIsModalOpen(false);
+                    setSelectedReference(null);
+                }
+            } catch (err) {
+                // Error is handled in store, but we could show a toast here
+                console.error("Failed to delete reference:", err);
+            }
+        },
+        [deleteReference, selectedReference],
+    );
 
     if (isLoading && references.length === 0) {
         return (
@@ -461,6 +488,18 @@ export function Dashboard() {
                                                         }
                                                     >
                                                         R
+                                                    </button>
+                                                    <button
+                                                        className="action-btn delete"
+                                                        title="Delete Reference"
+                                                        onClick={(e) =>
+                                                            handleDeleteReference(
+                                                                e,
+                                                                ref,
+                                                            )
+                                                        }
+                                                    >
+                                                        🗑
                                                     </button>
                                                 </div>
                                             </td>
