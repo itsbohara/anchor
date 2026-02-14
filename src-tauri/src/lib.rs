@@ -1,6 +1,7 @@
 mod models;
 mod storage;
 
+use std::path::Path;
 use std::process::Command;
 
 use tauri::{
@@ -67,6 +68,12 @@ async fn reveal_in_finder(path: String) -> Result<(), String> {
         .spawn()
         .map_err(|e| e.to_string())?;
     Ok(())
+}
+
+/// Check if a path exists
+#[tauri::command]
+async fn path_exists(path: String) -> bool {
+    Path::new(&path).exists()
 }
 
 /// Show or create the dashboard window
@@ -325,6 +332,7 @@ pub fn run() {
             add_reference,
             update_reference,
             delete_reference,
+            path_exists,
             open_in_finder,
             open_in_terminal,
             open_in_vscode,
