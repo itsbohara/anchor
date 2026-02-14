@@ -27,6 +27,8 @@ export function MenubarPopover() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const openAnchorButtonRef = useRef<HTMLButtonElement>(null);
 
     // Load references on mount
     useEffect(() => {
@@ -124,8 +126,26 @@ export function MenubarPopover() {
                 break;
             case "Escape":
                 e.preventDefault();
-                // Hide window
-                invoke("show_dashboard").catch(() => {});
+                // Hide popover window
+                invoke("hide_popover").catch(() => {});
+                break;
+            case "Tab":
+                // Focus trap: cycle between search input and Open Anchor button
+                if (e.shiftKey) {
+                    // Shift+Tab: if at search, go to Open Anchor button
+                    if (document.activeElement === searchInputRef.current) {
+                        e.preventDefault();
+                        openAnchorButtonRef.current?.focus();
+                    }
+                } else {
+                    // Tab: if at Open Anchor button, go to search
+                    if (
+                        document.activeElement === openAnchorButtonRef.current
+                    ) {
+                        e.preventDefault();
+                        searchInputRef.current?.focus();
+                    }
+                }
                 break;
         }
     };
@@ -140,6 +160,7 @@ export function MenubarPopover() {
 
     return (
         <div
+            ref={containerRef}
             className="popover-container"
             onKeyDown={handleKeyDown}
             tabIndex={0}
@@ -213,7 +234,11 @@ export function MenubarPopover() {
 
             {/* Footer */}
             <div className="footer">
-                <button className="open-anchor-btn" onClick={handleOpenAnchor}>
+                <button
+                    ref={openAnchorButtonRef}
+                    className="open-anchor-btn"
+                    onClick={handleOpenAnchor}
+                >
                     Open Anchor
                 </button>
             </div>
