@@ -1,5 +1,7 @@
 # Plan 06: Dashboard — Delete Reference
 
+> **Status: ✅ COMPLETE**
+
 > **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
 **Goal:** User can delete a reference from the dashboard. Optionally confirm before delete. Data is removed from `data.json` and the list (and popover) updates.

@@ -1,5 +1,7 @@
 # Plan 03: Dashboard Window
 
+> **Status: ✅ COMPLETE**
+
 > **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
 **Goal:** The "dashboard" is a separate window (opened via "Open Anchor") that shows the full reference list in a table or list. Read-only in this plan: no add/edit/delete yet. Layout: header ("Anchor" / "References") and main area with rows showing name, path (truncated), type, status, tags.

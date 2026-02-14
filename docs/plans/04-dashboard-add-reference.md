@@ -1,5 +1,7 @@
 # Plan 04: Dashboard — Add Reference
 
+> **Status: ✅ COMPLETE**
+
 > **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
 **Goal:** User can add a new reference from the dashboard: form with reference name, absolute path, type (folder/file), status, tags, optional description. Data is persisted to `data.json` via a Tauri command. New reference appears in the list and in the menu bar popover.

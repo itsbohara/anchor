@@ -1,5 +1,7 @@
 # Plan 05: Dashboard — Edit Reference
 
+> **Status: ✅ COMPLETE**
+
 > **For Claude:** REQUIRED SUB-SKILL: Use executing-plans to implement this plan task-by-task.
 
 **Goal:** User can select a reference in the dashboard and edit it: name, path, type, status, tags, description, pinned. Changes are persisted via a Tauri command. List and popover show updated data after refresh.
