@@ -195,7 +195,7 @@ export function MenubarPopover() {
     return (
         <div
             ref={containerRef}
-            className="popover-container"
+            className="popover-container dark"
             onKeyDown={handleKeyDown}
             tabIndex={0}
         >
