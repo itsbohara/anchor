@@ -1,6 +1,22 @@
 mod models;
 mod storage;
 
+use models::Reference;
+use storage::{read_references, write_references};
+use tauri::AppHandle;
+
+/// Gets all references from data.json.
+#[tauri::command]
+fn get_references(app_handle: AppHandle) -> Result<Vec<Reference>, String> {
+    read_references(&app_handle).map_err(|e| e.to_string())
+}
+
+/// Writes all references to data.json.
+#[tauri::command]
+fn save_references(app_handle: AppHandle, references: Vec<Reference>) -> Result<(), String> {
+    write_references(&app_handle, &references).map_err(|e| e.to_string())
+}
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -11,7 +27,11 @@ fn greet(name: &str) -> String {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            get_references,
+            save_references
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
