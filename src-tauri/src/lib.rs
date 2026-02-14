@@ -192,6 +192,27 @@ async fn update_reference(
     Ok(updated_reference)
 }
 
+/// Delete a reference from storage
+#[tauri::command]
+async fn delete_reference(app_handle: AppHandle, id: String) -> Result<(), String> {
+    // Read current references
+    let mut references = storage::read_references(&app_handle).map_err(|e| e.to_string())?;
+
+    // Find the reference to delete
+    let original_len = references.len();
+    references.retain(|r| r.id != id);
+
+    // Check if any reference was removed
+    if references.len() == original_len {
+        return Err(format!("Reference with id '{}' not found", id));
+    }
+
+    // Write back to storage
+    storage::write_references(&app_handle, &references).map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 /// Setup the system tray icon and menu
 fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -303,6 +324,7 @@ pub fn run() {
             get_references,
             add_reference,
             update_reference,
+            delete_reference,
             open_in_finder,
             open_in_terminal,
             open_in_vscode,
