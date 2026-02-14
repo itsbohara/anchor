@@ -17,6 +17,46 @@ fn save_references(app_handle: AppHandle, references: Vec<Reference>) -> Result<
     write_references(&app_handle, &references).map_err(|e| e.to_string())
 }
 
+/// Opens a path in Finder (macOS).
+#[tauri::command]
+fn open_in_finder(path: String) -> Result<(), String> {
+    std::process::Command::new("open")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Opens a path in Terminal (macOS).
+#[tauri::command]
+fn open_in_terminal(path: String) -> Result<(), String> {
+    std::process::Command::new("open")
+        .args(["-a", "Terminal", &path])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Opens a path in VS Code.
+#[tauri::command]
+fn open_in_vscode(path: String) -> Result<(), String> {
+    std::process::Command::new("code")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Reveals a path in Finder (selects the file).
+#[tauri::command]
+fn reveal_in_finder(path: String) -> Result<(), String> {
+    std::process::Command::new("open")
+        .args(["-R", &path])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -30,7 +70,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             get_references,
-            save_references
+            save_references,
+            open_in_finder,
+            open_in_terminal,
+            open_in_vscode,
+            reveal_in_finder
         ]);
 
     #[cfg(target_os = "macos")]
