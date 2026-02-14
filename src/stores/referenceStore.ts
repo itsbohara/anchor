@@ -13,6 +13,10 @@ interface ReferenceState {
     addReference: (
         reference: Omit<Reference, "id" | "createdAt" | "lastOpenedAt">,
     ) => Promise<Reference>;
+    updateReference: (
+        id: string,
+        reference: Omit<Reference, "id" | "createdAt" | "lastOpenedAt">,
+    ) => Promise<Reference>;
 }
 
 export const useReferenceStore = create<ReferenceState>((set, get) => ({
@@ -72,6 +76,49 @@ export const useReferenceStore = create<ReferenceState>((set, get) => ({
                     err instanceof Error
                         ? err.message
                         : "Failed to add reference",
+                isLoading: false,
+            });
+            throw err;
+        }
+    },
+
+    updateReference: async (id, reference) => {
+        set({ isLoading: true, error: null });
+        try {
+            // Transform to match Rust field names
+            const payload = {
+                id,
+                referenceName: reference.referenceName,
+                absolutePath: reference.absolutePath,
+                reference_type: reference.type,
+                status: reference.status,
+                tags: reference.tags,
+                description: reference.description,
+                createdAt: "", // Will be preserved on backend
+                lastOpenedAt: "", // Will be updated on backend
+                pinned: reference.pinned,
+            };
+
+            const updatedRef = await invoke<Reference>("update_reference", {
+                id,
+                reference: payload,
+            });
+
+            // Update local state - replace the existing reference
+            set({
+                references: get().references.map((ref) =>
+                    ref.id === id ? updatedRef : ref,
+                ),
+                isLoading: false,
+            });
+
+            return updatedRef;
+        } catch (err) {
+            set({
+                error:
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to update reference",
                 isLoading: false,
             });
             throw err;
