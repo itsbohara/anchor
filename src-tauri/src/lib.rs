@@ -25,13 +25,25 @@ fn greet(name: &str) -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             greet,
             get_references,
             save_references
-        ])
+        ]);
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.on_window_event(|window, event| match event {
+        tauri::WindowEvent::CloseRequested { api, .. } => {
+            // Prevent window close, hide it instead
+            window.hide().unwrap();
+            api.prevent_close();
+        }
+        _ => {}
+    });
+
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
