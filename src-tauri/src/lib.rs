@@ -9,6 +9,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
+use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use models::Reference;
 use uuid::Uuid;
@@ -66,6 +67,16 @@ async fn reveal_in_finder(path: String) -> Result<(), String> {
         .arg("-R")
         .arg(&path)
         .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+/// Copy a path to clipboard
+#[tauri::command]
+async fn copy_path_to_clipboard(app_handle: AppHandle, path: String) -> Result<(), String> {
+    app_handle
+        .clipboard()
+        .write_text(path)
         .map_err(|e| e.to_string())?;
     Ok(())
 }
@@ -356,6 +367,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .on_window_event(|window, event| {
             // Only handle popover window - close when it loses focus
             if window.label() == POPOVER_WINDOW_LABEL {
@@ -385,6 +397,7 @@ pub fn run() {
             open_in_terminal,
             open_in_vscode,
             reveal_in_finder,
+            copy_path_to_clipboard,
             show_dashboard,
             hide_popover,
         ])
