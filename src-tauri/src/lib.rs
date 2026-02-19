@@ -14,6 +14,38 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use models::Reference;
 use uuid::Uuid;
 
+// macOS activation policy for dock/app switcher visibility
+#[cfg(target_os = "macos")]
+use cocoa::appkit::{NSApp, NSApplicationActivationPolicy};
+#[cfg(target_os = "macos")]
+use cocoa::base::id;
+#[cfg(target_os = "macos")]
+use objc::{msg_send, sel, sel_impl};
+
+#[cfg(target_os = "macos")]
+fn set_activation_policy(policy: NSApplicationActivationPolicy) {
+    unsafe {
+        let app: id = NSApp();
+        let _: () = msg_send![app, setActivationPolicy: policy];
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn make_background_app() {
+    set_activation_policy(NSApplicationActivationPolicy::NSApplicationActivationPolicyAccessory);
+}
+
+#[cfg(target_os = "macos")]
+fn make_foreground_app() {
+    set_activation_policy(NSApplicationActivationPolicy::NSApplicationActivationPolicyRegular);
+}
+
+#[cfg(not(target_os = "macos"))]
+fn make_background_app() {}
+
+#[cfg(not(target_os = "macos"))]
+fn make_foreground_app() {}
+
 // Window labels
 const POPOVER_WINDOW_LABEL: &str = "popover";
 const DASHBOARD_WINDOW_LABEL: &str = "dashboard";
@@ -90,6 +122,9 @@ async fn path_exists(path: String) -> bool {
 /// Show or create the dashboard window
 #[tauri::command]
 async fn show_dashboard(app_handle: AppHandle) -> Result<(), String> {
+    // Switch to foreground mode when showing dashboard (appears in Dock/Cmd+Tab)
+    make_foreground_app();
+    
     if let Some(window) = app_handle.get_webview_window(DASHBOARD_WINDOW_LABEL) {
         // Dashboard exists, show and focus it
         window.show().map_err(|e| e.to_string())?;
@@ -369,10 +404,34 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .on_window_event(|window, event| {
-            // Only handle popover window - close when it loses focus
+            let app_handle = window.app_handle();
+            
+            // Handle popover window - close when it loses focus
             if window.label() == POPOVER_WINDOW_LABEL {
                 if let tauri::WindowEvent::Focused(false) = event {
                     window.hide().ok();
+                }
+            }
+            
+            // Handle dashboard window visibility changes
+            if window.label() == DASHBOARD_WINDOW_LABEL {
+                match event {
+                    tauri::WindowEvent::CloseRequested { api, .. } => {
+                        // Prevent the window from closing, just hide it
+                        api.prevent_close();
+                        window.hide().ok();
+                        // Switch to background mode when dashboard is hidden
+                        make_background_app();
+                    }
+                    tauri::WindowEvent::Destroyed => {
+                        // Dashboard destroyed - switch to background mode
+                        make_background_app();
+                    }
+                    tauri::WindowEvent::Focused(true) => {
+                        // Dashboard focused - ensure we're in foreground mode
+                        make_foreground_app();
+                    }
+                    _ => {}
                 }
             }
         })
@@ -384,6 +443,9 @@ pub fn run() {
             if let Some(window) = app.get_webview_window("main") {
                 window.hide().ok();
             }
+            
+            // Start in background mode (menubar only, no dock/app switcher)
+            make_background_app();
 
             Ok(())
         })
