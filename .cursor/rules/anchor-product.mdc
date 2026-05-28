@@ -1,0 +1,30 @@
+---
+description: What Anchor is and where to read product/UX docs
+alwaysApply: true
+---
+
+# Anchor — product context
+
+**Anchor** is a lightweight **macOS menu bar app** that acts as a personal project registry: curated references to local folders/files with metadata (status, tags, notes), search, and quick actions (Finder, Terminal, VSCode). It does **not** replace Finder or auto-index the filesystem.
+
+## Canonical documentation (read these first)
+
+| Topic | Path |
+|-------|------|
+| Product vision, MVP, data model, roadmap | `docs/project.md` |
+| Menu bar popover layout & keyboard UX | `docs/menubar.md` |
+| Build, stack, storage path, window sync | `AGENTS.md` |
+| Phase plans | `docs/plans/`, `docs/roadmap/` |
+
+**Do not** use root `README.md` for product context — it is the default Tauri template only.
+
+## Implementation facts
+
+- **Stack**: React + TypeScript + Vite + Zustand; Tauri (Rust) for FS and launch actions
+- **Windows**: Menu bar popover (browse/search/launch) and Dashboard (add/edit references); sync via Tauri `references_changed` events
+- **Data**: `~/Library/Application Support/com.itsbohara.anchor/Anchor/data.json`
+- **Package manager**: `bun` (see `AGENTS.md`)
+
+## Design principles
+
+Minimal, keyboard-first, fast, no clutter — see `docs/project.md` and `docs/menubar.md`.
