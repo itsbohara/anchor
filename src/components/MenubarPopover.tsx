@@ -11,6 +11,7 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
+    DropdownMenuShortcut,
     DropdownMenuRadioGroup,
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
@@ -34,6 +35,8 @@ const STATUS_LABELS: Record<string, string> = {
     archived: "Archived",
 };
 
+const COPY_NOTICE_MS = 2200;
+
 export function MenubarPopover() {
     const { references, isLoading, loadReferences } = useReferenceStore();
     const [searchQuery, setSearchQuery] = useState("");
@@ -49,6 +52,10 @@ export function MenubarPopover() {
     const tagFilterTriggerRef = useRef<HTMLButtonElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const openAnchorButtonRef = useRef<HTMLButtonElement>(null);
+    const copyNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null,
+    );
+    const [copyNotice, setCopyNotice] = useState<string | null>(null);
 
     const focusSearchInput = useCallback(() => {
         // Defer until after show/focus + any loading UI swap
@@ -111,7 +118,21 @@ export function MenubarPopover() {
             if (hoverLeaveTimeoutRef.current) {
                 clearTimeout(hoverLeaveTimeoutRef.current);
             }
+            if (copyNoticeTimeoutRef.current) {
+                clearTimeout(copyNoticeTimeoutRef.current);
+            }
         };
+    }, []);
+
+    const showCopyNotice = useCallback((referenceName: string) => {
+        if (copyNoticeTimeoutRef.current) {
+            clearTimeout(copyNoticeTimeoutRef.current);
+        }
+        setCopyNotice(`${referenceName} path copied!`);
+        copyNoticeTimeoutRef.current = setTimeout(() => {
+            setCopyNotice(null);
+            copyNoticeTimeoutRef.current = null;
+        }, COPY_NOTICE_MS);
     }, []);
 
     const handleRowHoverStart = (rowId: string) => {
@@ -278,7 +299,17 @@ export function MenubarPopover() {
         >
             {/* Search bar + tag filter */}
             <div className="search-section">
-                <div className="search-bar">
+                <div className="search-bar-shell">
+                    {copyNotice && (
+                        <div
+                            className="copy-notice"
+                            role="status"
+                            aria-live="polite"
+                        >
+                            {copyNotice}
+                        </div>
+                    )}
+                    <div className="search-bar">
                     <input
                         ref={searchInputRef}
                         type="text"
@@ -355,6 +386,7 @@ export function MenubarPopover() {
                             </DropdownMenu>
                         </>
                     )}
+                    </div>
                 </div>
             </div>
 
@@ -375,6 +407,7 @@ export function MenubarPopover() {
                             activeRowId={activeRowId}
                             onHoverStart={handleRowHoverStart}
                             onHoverEnd={handleRowHoverEnd}
+                            onPathCopied={showCopyNotice}
                         />
                     ))}
                 </div>
@@ -405,6 +438,7 @@ export function MenubarPopover() {
                                     activeRowId={activeRowId}
                                     onHoverStart={handleRowHoverStart}
                                     onHoverEnd={handleRowHoverEnd}
+                                    onPathCopied={showCopyNotice}
                                 />
                             ))}
                         </div>
@@ -420,16 +454,17 @@ export function MenubarPopover() {
                 )}
             </div>
 
-            {/* Footer */}
-            <div className="footer">
-                <Button
-                    ref={openAnchorButtonRef}
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleOpenAnchor}
-                >
-                    Open Anchor
-                </Button>
+            <div className="popover-bottom">
+                <div className="footer">
+                    <Button
+                        ref={openAnchorButtonRef}
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleOpenAnchor}
+                    >
+                        Open Anchor
+                    </Button>
+                </div>
             </div>
         </div>
     );
@@ -441,6 +476,7 @@ interface ReferenceRowProps {
     activeRowId: string | null;
     onHoverStart: (rowId: string) => void;
     onHoverEnd: (rowId: string) => void;
+    onPathCopied: (referenceName: string) => void;
 }
 
 function ReferenceRow({
@@ -449,6 +485,7 @@ function ReferenceRow({
     activeRowId,
     onHoverStart,
     onHoverEnd,
+    onPathCopied,
 }: ReferenceRowProps) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const isThisRowActive = activeRowId === reference.id;
@@ -484,7 +521,20 @@ function ReferenceRow({
     };
 
     const handleCopyPath = () => {
-        invoke("copy_path_to_clipboard", { path: reference.absolutePath });
+        void invoke("copy_path_to_clipboard", {
+            path: reference.absolutePath,
+        }).then(() => {
+            onPathCopied(reference.referenceName);
+        });
+    };
+
+    const handleOpenMenuKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key !== "c" && e.key !== "C") return;
+        if (e.metaKey || e.ctrlKey || e.altKey) return;
+        e.preventDefault();
+        e.stopPropagation();
+        void handleCopyPath();
+        setDropdownOpen(false);
     };
 
     // Prevent row click when clicking the dropdown area
@@ -522,7 +572,10 @@ function ReferenceRow({
                             Open ▼
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent
+                        align="end"
+                        onKeyDown={handleOpenMenuKeyDown}
+                    >
                         <DropdownMenuItem onClick={handleOpenInFinder}>
                             <span className="mr-2">📁</span>
                             Finder
@@ -538,6 +591,7 @@ function ReferenceRow({
                         <DropdownMenuItem onClick={handleCopyPath}>
                             <span className="mr-2">📋</span>
                             Copy path
+                            <DropdownMenuShortcut>C</DropdownMenuShortcut>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
