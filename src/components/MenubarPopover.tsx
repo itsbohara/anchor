@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReferenceStore } from "../stores/referenceStore";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Reference } from "../types/references";
 import "./MenubarPopover.css";
 import { Button } from "@/components/ui/button";
@@ -42,40 +43,61 @@ export function MenubarPopover() {
     const containerRef = useRef<HTMLDivElement>(null);
     const openAnchorButtonRef = useRef<HTMLButtonElement>(null);
 
-    // Load references on mount and when window becomes visible
-    useEffect(() => {
-        loadReferences();
+    const focusSearchInput = useCallback(() => {
+        // Defer until after show/focus + any loading UI swap
+        requestAnimationFrame(() => {
+            searchInputRef.current?.focus();
+        });
+    }, []);
 
-        // Listen for window visibility changes
+    const handlePopoverShown = useCallback(() => {
+        setSelectedIndex(0);
+        setActiveRowId(null);
+        void loadReferences().finally(focusSearchInput);
+    }, [loadReferences, focusSearchInput]);
+
+    // Load references on mount and when popover is shown again
+    useEffect(() => {
+        handlePopoverShown();
+
         const handleVisibilityChange = () => {
             if (document.visibilityState === "visible") {
-                loadReferences();
+                handlePopoverShown();
             }
         };
 
         document.addEventListener("visibilitychange", handleVisibilityChange);
 
-        // Listen for references_changed events from backend
-        let unlisten: (() => void) | undefined;
-        const setupEventListener = async () => {
-            unlisten = await listen("references_changed", () => {
+        let unlistenRefs: (() => void) | undefined;
+        let unlistenFocus: (() => void) | undefined;
+
+        const setupListeners = async () => {
+            unlistenRefs = await listen("references_changed", () => {
                 loadReferences();
             });
+            unlistenFocus = await getCurrentWindow().onFocusChanged(
+                ({ payload: focused }) => {
+                    if (focused) {
+                        handlePopoverShown();
+                    }
+                },
+            );
         };
-        setupEventListener();
+        void setupListeners();
 
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
-            if (unlisten) {
-                unlisten();
-            }
+            unlistenRefs?.();
+            unlistenFocus?.();
         };
-    }, [loadReferences]);
+    }, [handlePopoverShown, loadReferences]);
 
-    // Focus search input on mount
+    // Focus after initial load when search input is back in the DOM
     useEffect(() => {
-        searchInputRef.current?.focus();
-    }, []);
+        if (!isLoading) {
+            focusSearchInput();
+        }
+    }, [isLoading, focusSearchInput]);
 
     useEffect(() => {
         return () => {
@@ -217,7 +239,7 @@ export function MenubarPopover() {
         invoke("show_dashboard");
     };
 
-    if (isLoading) {
+    if (isLoading && references.length === 0) {
         return <div className="popover-container">Loading...</div>;
     }
 
@@ -234,6 +256,7 @@ export function MenubarPopover() {
                     ref={searchInputRef}
                     type="text"
                     className="search-input"
+                    autoFocus
                     placeholder="Search references..."
                     value={searchQuery}
                     onChange={(e) => {
