@@ -86,6 +86,18 @@ async fn open_in_terminal(path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Open a path in Warp
+#[tauri::command]
+async fn open_in_warp(path: String) -> Result<(), String> {
+    Command::new("open")
+        .arg("-a")
+        .arg("Warp")
+        .arg(&path)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Open a path in VSCode
 #[tauri::command]
 async fn open_in_vscode(path: String) -> Result<(), String> {
@@ -466,6 +478,7 @@ pub fn run() {
             path_exists,
             open_in_finder,
             open_in_terminal,
+            open_in_warp,
             open_in_vscode,
             reveal_in_finder,
             copy_path_to_clipboard,

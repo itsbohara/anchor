@@ -520,6 +520,10 @@ function ReferenceRow({
         invoke("open_in_terminal", { path: reference.absolutePath });
     };
 
+    const handleOpenInWarp = () => {
+        invoke("open_in_warp", { path: reference.absolutePath });
+    };
+
     const handleCopyPath = () => {
         void invoke("copy_path_to_clipboard", {
             path: reference.absolutePath,
@@ -529,11 +533,16 @@ function ReferenceRow({
     };
 
     const handleOpenMenuKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key !== "c" && e.key !== "C") return;
         if (e.metaKey || e.ctrlKey || e.altKey) return;
+        const key = e.key.toLowerCase();
+        if (key !== "c" && key !== "w") return;
         e.preventDefault();
         e.stopPropagation();
-        void handleCopyPath();
+        if (key === "c") {
+            void handleCopyPath();
+        } else {
+            handleOpenInWarp();
+        }
         setDropdownOpen(false);
     };
 
@@ -587,6 +596,11 @@ function ReferenceRow({
                         <DropdownMenuItem onClick={handleOpenInTerminal}>
                             <span className="mr-2">💻</span>
                             Terminal
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleOpenInWarp}>
+                            <span className="mr-2">⚡</span>
+                            Warp Terminal
+                            <DropdownMenuShortcut>W</DropdownMenuShortcut>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleCopyPath}>
                             <span className="mr-2">📋</span>
