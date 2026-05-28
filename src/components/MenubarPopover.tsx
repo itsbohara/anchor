@@ -356,16 +356,18 @@ function ReferenceRow({ reference, isSelected, activeRowId, onHoverChange }: Ref
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >
-            <div className="reference-name">{reference.referenceName}</div>
-            <div className="reference-meta">
-                <span className={`type-badge ${reference.type}`}>
-                    {reference.type}
-                </span>
-                {reference.tags.slice(0, 2).map((tag) => (
-                    <span key={tag} className="tag-badge">
-                        {tag}
+            <div className="reference-row-main">
+                <span className="reference-name">{reference.referenceName}</span>
+                <div className="reference-meta">
+                    <span className={`type-badge ${reference.type}`}>
+                        {reference.type}
                     </span>
-                ))}
+                    {reference.tags.slice(0, 2).map((tag) => (
+                        <span key={tag} className="tag-badge">
+                            {tag}
+                        </span>
+                    ))}
+                </div>
             </div>
             <div
                 className={`open-dropdown-container ${isOpenVisible ? "visible" : ""}`}
