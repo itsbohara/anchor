@@ -10,6 +10,9 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -34,12 +37,16 @@ const STATUS_LABELS: Record<string, string> = {
 export function MenubarPopover() {
     const { references, isLoading, loadReferences } = useReferenceStore();
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedTagFilter, setSelectedTagFilter] = useState<string | null>(
+        null,
+    );
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [activeRowId, setActiveRowId] = useState<string | null>(null);
     const hoverLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
         null,
     );
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const tagFilterTriggerRef = useRef<HTMLButtonElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const openAnchorButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -125,15 +132,44 @@ export function MenubarPopover() {
         }, 200);
     };
 
-    // Filter and group references
-    const filteredReferences = useMemo(() => {
-        const query = searchQuery.toLowerCase();
-        return references.filter(
-            (ref) =>
-                ref.referenceName.toLowerCase().includes(query) ||
-                ref.tags.some((tag) => tag.toLowerCase().includes(query)),
+    const availableTags = useMemo(() => {
+        const tagSet = new Set<string>();
+        for (const ref of references) {
+            for (const tag of ref.tags) {
+                tagSet.add(tag);
+            }
+        }
+        return Array.from(tagSet).sort((a, b) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" }),
         );
-    }, [references, searchQuery]);
+    }, [references]);
+
+    useEffect(() => {
+        if (
+            selectedTagFilter &&
+            !availableTags.includes(selectedTagFilter)
+        ) {
+            setSelectedTagFilter(null);
+        }
+    }, [availableTags, selectedTagFilter]);
+
+    // Filter and group references (text search AND tag filter)
+    const filteredReferences = useMemo(() => {
+        const query = searchQuery.trim().toLowerCase();
+        return references.filter((ref) => {
+            const matchesTag =
+                selectedTagFilter === null ||
+                ref.tags.includes(selectedTagFilter);
+            if (!matchesTag) return false;
+
+            if (!query) return true;
+
+            return (
+                ref.referenceName.toLowerCase().includes(query) ||
+                ref.tags.some((tag) => tag.toLowerCase().includes(query))
+            );
+        });
+    }, [references, searchQuery, selectedTagFilter]);
 
     const pinnedReferences = useMemo(
         () => filteredReferences.filter((ref) => ref.pinned),
@@ -214,24 +250,25 @@ export function MenubarPopover() {
                 // Hide popover window
                 invoke("hide_popover").catch(() => {});
                 break;
-            case "Tab":
-                // Focus trap: cycle between search input and Open Anchor button
-                if (e.shiftKey) {
-                    // Shift+Tab: if at search, go to Open Anchor button
-                    if (document.activeElement === searchInputRef.current) {
-                        e.preventDefault();
-                        openAnchorButtonRef.current?.focus();
-                    }
-                } else {
-                    // Tab: if at Open Anchor button, go to search
-                    if (
-                        document.activeElement === openAnchorButtonRef.current
-                    ) {
-                        e.preventDefault();
-                        searchInputRef.current?.focus();
-                    }
-                }
+            case "Tab": {
+                const focusables = [
+                    searchInputRef.current,
+                    tagFilterTriggerRef.current,
+                    openAnchorButtonRef.current,
+                ].filter((el) => el != null);
+
+                const activeIndex = focusables.findIndex(
+                    (el) => el === document.activeElement,
+                );
+                if (activeIndex === -1) break;
+
+                e.preventDefault();
+                const nextIndex = e.shiftKey
+                    ? (activeIndex - 1 + focusables.length) % focusables.length
+                    : (activeIndex + 1) % focusables.length;
+                focusables[nextIndex]?.focus();
                 break;
+            }
         }
     };
 
@@ -250,20 +287,86 @@ export function MenubarPopover() {
             onKeyDown={handleKeyDown}
             tabIndex={0}
         >
-            {/* Search bar */}
+            {/* Search bar + tag filter */}
             <div className="search-section">
-                <input
-                    ref={searchInputRef}
-                    type="text"
-                    className="search-input"
-                    autoFocus
-                    placeholder="Search references..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                        setSearchQuery(e.target.value);
-                        setSelectedIndex(0);
-                    }}
-                />
+                <div className="search-bar">
+                    <input
+                        ref={searchInputRef}
+                        type="text"
+                        className="search-input"
+                        autoFocus
+                        placeholder="Search references..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setSelectedIndex(0);
+                        }}
+                    />
+                    {availableTags.length > 0 && (
+                        <>
+                            <div
+                                className="search-bar-divider"
+                                aria-hidden
+                            />
+                            <DropdownMenu modal={false}>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        ref={tagFilterTriggerRef}
+                                        type="button"
+                                        className={`tag-filter-trigger ${selectedTagFilter ? "active" : ""}`}
+                                        aria-label={
+                                            selectedTagFilter
+                                                ? `Filter by tag: ${selectedTagFilter}`
+                                                : "Filter by tag: All"
+                                        }
+                                        onKeyDown={(e) => e.stopPropagation()}
+                                    >
+                                        <span className="tag-filter-label">
+                                            {selectedTagFilter ?? "All"}
+                                        </span>
+                                        <span
+                                            className="tag-filter-chevron"
+                                            aria-hidden
+                                        >
+                                            ▾
+                                        </span>
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    className="tag-filter-menu"
+                                >
+                                    <DropdownMenuLabel>Tag</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup
+                                        value={
+                                            selectedTagFilter ?? "__all__"
+                                        }
+                                        onValueChange={(value) => {
+                                            setSelectedTagFilter(
+                                                value === "__all__"
+                                                    ? null
+                                                    : value,
+                                            );
+                                            setSelectedIndex(0);
+                                        }}
+                                    >
+                                        <DropdownMenuRadioItem value="__all__">
+                                            All
+                                        </DropdownMenuRadioItem>
+                                        {availableTags.map((tag) => (
+                                            <DropdownMenuRadioItem
+                                                key={tag}
+                                                value={tag}
+                                            >
+                                                {tag}
+                                            </DropdownMenuRadioItem>
+                                        ))}
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Pinned section */}
@@ -320,7 +423,11 @@ export function MenubarPopover() {
                 })}
 
                 {filteredReferences.length === 0 && (
-                    <div className="empty-state">No references found</div>
+                    <div className="empty-state">
+                        {selectedTagFilter
+                            ? `No references tagged “${selectedTagFilter}”`
+                            : "No references found"}
+                    </div>
                 )}
             </div>
 
