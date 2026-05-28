@@ -233,6 +233,14 @@ body {
   line-height: 1.3;
 }
 
+/* Open menu icons (lucide, matches shadcn dropdown items) */
+.open-menu-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
 /* Open dropdown container */
 .open-dropdown-container {
   position: absolute;

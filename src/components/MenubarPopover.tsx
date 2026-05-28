@@ -16,6 +16,16 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    Clipboard,
+    Code2,
+    FileCode,
+    FolderOpen,
+    Terminal,
+    Zap,
+} from "lucide-react";
+
+const OPEN_MENU_ICON_CLASS = "open-menu-icon";
 
 // Status order for grouping
 const STATUS_ORDER = [
@@ -512,6 +522,10 @@ function ReferenceRow({
         invoke("open_in_finder", { path: reference.absolutePath });
     };
 
+    const handleOpenInCursor = () => {
+        invoke("open_in_cursor", { path: reference.absolutePath });
+    };
+
     const handleOpenInVSCode = () => {
         invoke("open_in_vscode", { path: reference.absolutePath });
     };
@@ -586,24 +600,40 @@ function ReferenceRow({
                         onKeyDown={handleOpenMenuKeyDown}
                     >
                         <DropdownMenuItem onClick={handleOpenInFinder}>
-                            <span className="mr-2">📁</span>
+                            <FolderOpen
+                                className={OPEN_MENU_ICON_CLASS}
+                                aria-hidden
+                            />
                             Finder
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleOpenInCursor}>
+                            <Code2 className={OPEN_MENU_ICON_CLASS} aria-hidden />
+                            Cursor
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleOpenInVSCode}>
-                            <span className="mr-2">📝</span>
-                            VS Code:
+                            <FileCode
+                                className={OPEN_MENU_ICON_CLASS}
+                                aria-hidden
+                            />
+                            VS Code
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleOpenInTerminal}>
-                            <span className="mr-2">💻</span>
+                            <Terminal
+                                className={OPEN_MENU_ICON_CLASS}
+                                aria-hidden
+                            />
                             Terminal
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleOpenInWarp}>
-                            <span className="mr-2">⚡</span>
+                            <Zap className={OPEN_MENU_ICON_CLASS} aria-hidden />
                             Warp Terminal
                             <DropdownMenuShortcut>W</DropdownMenuShortcut>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleCopyPath}>
-                            <span className="mr-2">📋</span>
+                            <Clipboard
+                                className={OPEN_MENU_ICON_CLASS}
+                                aria-hidden
+                            />
                             Copy path
                             <DropdownMenuShortcut>C</DropdownMenuShortcut>
                         </DropdownMenuItem>
