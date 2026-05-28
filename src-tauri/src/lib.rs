@@ -5,10 +5,14 @@ use std::path::Path;
 use std::process::Command;
 
 use tauri::{
+    image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager, Runtime, WebviewUrl, WebviewWindowBuilder,
 };
+
+/// White anchor glyph for the menu bar (visible on dark macOS menu bars).
+const TRAY_ICON_PNG: &[u8] = include_bytes!("../../app-icon-white.png");
 use tauri_plugin_clipboard_manager::ClipboardExt;
 
 use models::Reference;
@@ -275,13 +279,18 @@ async fn delete_reference(app_handle: AppHandle, id: String) -> Result<(), Strin
     Ok(())
 }
 
+fn load_tray_icon() -> Result<Image<'static>, Box<dyn std::error::Error>> {
+    Ok(Image::from_bytes(TRAY_ICON_PNG)?)
+}
+
 /// Setup the system tray icon and menu
 fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> Result<(), Box<dyn std::error::Error>> {
     let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&quit_item])?;
+    let tray_icon = load_tray_icon()?;
 
     let _tray = TrayIconBuilder::new()
-        .icon(app.default_window_icon().unwrap().clone())
+        .icon(tray_icon)
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, event| match event {
