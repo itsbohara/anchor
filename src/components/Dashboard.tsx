@@ -437,8 +437,10 @@ export function Dashboard() {
                                             <td className="cell-actions">
                                                 <div className="action-buttons">
                                                     <button
+                                                        type="button"
                                                         className="action-btn"
-                                                        title="Edit Reference"
+                                                        data-tooltip="Edit reference"
+                                                        aria-label="Edit reference"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             handleOpenEditModal(
@@ -449,8 +451,10 @@ export function Dashboard() {
                                                         ✎
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         className="action-btn"
-                                                        title="Open in Terminal"
+                                                        data-tooltip="Open in Terminal"
+                                                        aria-label="Open in Terminal"
                                                         onClick={(e) =>
                                                             handleOpenInTerminal(
                                                                 e,
@@ -461,8 +465,10 @@ export function Dashboard() {
                                                         ⌘
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         className="action-btn"
-                                                        title="Open in VS Code"
+                                                        data-tooltip="Open in VS Code"
+                                                        aria-label="Open in VS Code"
                                                         onClick={(e) =>
                                                             handleOpenInVSCode(
                                                                 e,
@@ -473,8 +479,10 @@ export function Dashboard() {
                                                         ⌥
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         className="action-btn"
-                                                        title="Reveal in Finder"
+                                                        data-tooltip="Reveal in Finder"
+                                                        aria-label="Reveal in Finder"
                                                         onClick={(e) =>
                                                             handleRevealInFinder(
                                                                 e,
@@ -485,8 +493,10 @@ export function Dashboard() {
                                                         R
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         className="action-btn delete"
-                                                        title="Delete Reference"
+                                                        data-tooltip="Delete reference"
+                                                        aria-label="Delete reference"
                                                         onClick={(e) =>
                                                             handleDeleteReference(
                                                                 e,
