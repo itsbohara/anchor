@@ -154,7 +154,7 @@ body {
 /* Reference row — single-line: title + inline badges */
 .popover-container .reference-row {
   padding: 5px 72px 5px 12px;
-  cursor: pointer;
+  cursor: default;
   display: flex;
   align-items: center;
   min-height: 28px;

@@ -223,28 +223,17 @@ export function MenubarPopover() {
                 e.preventDefault();
                 setSelectedIndex((prev) => Math.max(prev - 1, 0));
                 break;
-            case "Enter":
+            case "Enter": {
                 e.preventDefault();
+                const ref = referenceItems[selectedIndex];
+                if (!ref) break;
                 if (e.metaKey) {
-                    // Cmd+Enter - open in Terminal
-                    const ref = referenceItems[selectedIndex];
-                    if (ref) {
-                        invoke("open_in_terminal", { path: ref.absolutePath });
-                    }
+                    invoke("open_in_terminal", { path: ref.absolutePath });
                 } else if (e.altKey) {
-                    // Option+Enter - open in VSCode
-                    const ref = referenceItems[selectedIndex];
-                    if (ref) {
-                        invoke("open_in_vscode", { path: ref.absolutePath });
-                    }
-                } else {
-                    // Enter - open in Finder
-                    const ref = referenceItems[selectedIndex];
-                    if (ref) {
-                        invoke("open_in_finder", { path: ref.absolutePath });
-                    }
+                    invoke("open_in_vscode", { path: ref.absolutePath });
                 }
                 break;
+            }
             case "Escape":
                 e.preventDefault();
                 // Hide popover window
@@ -482,10 +471,6 @@ function ReferenceRow({
         onHoverStart(reference.id);
     };
 
-    const handleRowClick = () => {
-        invoke("open_in_finder", { path: reference.absolutePath });
-    };
-
     const handleOpenInFinder = () => {
         invoke("open_in_finder", { path: reference.absolutePath });
     };
@@ -510,7 +495,6 @@ function ReferenceRow({
     return (
         <div
             className={`reference-row ${isSelected ? "selected" : ""}`}
-            onClick={handleRowClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
         >

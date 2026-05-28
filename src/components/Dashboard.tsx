@@ -200,10 +200,6 @@ export function Dashboard() {
         });
     });
 
-    const handleOpenReference = (ref: Reference) => {
-        invoke("open_in_finder", { path: ref.absolutePath });
-    };
-
     const handleOpenInTerminal = (e: React.MouseEvent, ref: Reference) => {
         e.stopPropagation();
         invoke("open_in_terminal", { path: ref.absolutePath });
@@ -363,9 +359,6 @@ export function Dashboard() {
                                         <tr
                                             key={ref.id}
                                             className={`reference-row ${ref.pinned ? "pinned" : ""}`}
-                                            onClick={() =>
-                                                handleOpenReference(ref)
-                                            }
                                         >
                                             <td className="cell-name">
                                                 <div className="name-cell">
