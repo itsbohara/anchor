@@ -171,16 +171,20 @@ body {
   right: 0;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 9999;
+  z-index: 1;
   padding: 4px 8px;
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
   transition: opacity 0.1s ease, visibility 0.1s ease;
 }
 
+/* CSS hover is reliable; .visible covers keyboard selection + open menu */
+.popover-container .reference-row:hover .open-dropdown-container,
 .open-dropdown-container.visible {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
 }
 
 /* Footer */

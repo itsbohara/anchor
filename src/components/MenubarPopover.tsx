@@ -35,6 +35,9 @@ export function MenubarPopover() {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [activeRowId, setActiveRowId] = useState<string | null>(null);
+    const hoverLeaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+        null,
+    );
     const searchInputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const openAnchorButtonRef = useRef<HTMLButtonElement>(null);
@@ -73,6 +76,32 @@ export function MenubarPopover() {
     useEffect(() => {
         searchInputRef.current?.focus();
     }, []);
+
+    useEffect(() => {
+        return () => {
+            if (hoverLeaveTimeoutRef.current) {
+                clearTimeout(hoverLeaveTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const handleRowHoverStart = (rowId: string) => {
+        if (hoverLeaveTimeoutRef.current) {
+            clearTimeout(hoverLeaveTimeoutRef.current);
+            hoverLeaveTimeoutRef.current = null;
+        }
+        setActiveRowId(rowId);
+    };
+
+    const handleRowHoverEnd = (rowId: string) => {
+        if (hoverLeaveTimeoutRef.current) {
+            clearTimeout(hoverLeaveTimeoutRef.current);
+        }
+        hoverLeaveTimeoutRef.current = setTimeout(() => {
+            setActiveRowId((current) => (current === rowId ? null : current));
+            hoverLeaveTimeoutRef.current = null;
+        }, 200);
+    };
 
     // Filter and group references
     const filteredReferences = useMemo(() => {
@@ -229,7 +258,8 @@ export function MenubarPopover() {
                                 ) === selectedIndex
                             }
                             activeRowId={activeRowId}
-                            onHoverChange={setActiveRowId}
+                            onHoverStart={handleRowHoverStart}
+                            onHoverEnd={handleRowHoverEnd}
                         />
                     ))}
                 </div>
@@ -258,7 +288,8 @@ export function MenubarPopover() {
                                         ) === selectedIndex
                                     }
                                     activeRowId={activeRowId}
-                                    onHoverChange={setActiveRowId}
+                                    onHoverStart={handleRowHoverStart}
+                                    onHoverEnd={handleRowHoverEnd}
                                 />
                             ))}
                         </div>
@@ -289,39 +320,36 @@ interface ReferenceRowProps {
     reference: Reference;
     isSelected: boolean;
     activeRowId: string | null;
-    onHoverChange: (rowId: string | null) => void;
+    onHoverStart: (rowId: string) => void;
+    onHoverEnd: (rowId: string) => void;
 }
 
-function ReferenceRow({ reference, isSelected, activeRowId, onHoverChange }: ReferenceRowProps) {
-    const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+function ReferenceRow({
+    reference,
+    isSelected,
+    activeRowId,
+    onHoverStart,
+    onHoverEnd,
+}: ReferenceRowProps) {
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const isThisRowActive = activeRowId === reference.id;
 
-    // Show Open button if: row is hovered, row is selected with no other hover, OR dropdown is open
-    const isOpenVisible = isThisRowActive || (isSelected && activeRowId === null) || dropdownOpen;
+    // Keyboard-selected row when nothing else is hovered; dropdown keeps actions visible
+    const isOpenVisible =
+        isThisRowActive ||
+        (isSelected && activeRowId === null) ||
+        dropdownOpen;
 
     const handleMouseEnter = () => {
-        if (hoverTimeoutRef.current) {
-            clearTimeout(hoverTimeoutRef.current);
-            hoverTimeoutRef.current = null;
-        }
-        onHoverChange(reference.id);
+        onHoverStart(reference.id);
     };
 
     const handleMouseLeave = () => {
-        // Delay clearing the hover so user can move to dropdown
-        hoverTimeoutRef.current = setTimeout(() => {
-            onHoverChange(null);
-        }, 200);
+        onHoverEnd(reference.id);
     };
 
     const handleDropdownMouseEnter = () => {
-        // Keep this row active when hovering over the dropdown
-        if (hoverTimeoutRef.current) {
-            clearTimeout(hoverTimeoutRef.current);
-            hoverTimeoutRef.current = null;
-        }
-        onHoverChange(reference.id);
+        onHoverStart(reference.id);
     };
 
     const handleRowClick = () => {
